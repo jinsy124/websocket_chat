@@ -20,22 +20,32 @@ router = APIRouter(tags=["API"])
 
 # ============= AUTH ENDPOINTS =============
 
+
 @router.post("/auth/register")
 async def register(user: UserRegister, db: AsyncSession = Depends(get_db)):
     """Register a new user"""
     return await register_user(user, db)
+
 
 @router.post("/auth/login", response_model=Token)
 async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     """Login and get JWT tokens"""
     return await login_user(user, db)
 
+
 @router.post("/auth/refresh", response_model=Token)
 async def refresh(req: RefreshTokenRequest):
     """Refresh access token"""
     return await refresh_user_token(req.refresh_token)
 
+
+@router.post("/auth/logout")
+async def logout(current_user_id: int = Depends(get_current_user_id)):
+    """Logout user (Client should discard the token)"""
+    return {"message": "Successfully logged out"}
+
 # ============= USER ENDPOINTS =============
+
 
 @router.get("/users/me", response_model=UserProfile)
 async def get_me(
@@ -44,6 +54,7 @@ async def get_me(
 ):
     """Get current user profile"""
     return await get_current_user_profile(current_user_id, db)
+
 
 @router.get("/users", response_model=List[UserListItem])
 async def list_users(
@@ -55,6 +66,7 @@ async def list_users(
 
 # ============= CONVERSATION ENDPOINTS =============
 
+
 @router.get("/conversations", response_model=List[ConversationWithUser])
 async def get_conversations(
     current_user_id: int = Depends(get_current_user_id),
@@ -62,6 +74,7 @@ async def get_conversations(
 ):
     """Get all conversations for current user (Home page)"""
     return await get_user_conversations(current_user_id, db)
+
 
 @router.post("/conversations")
 async def create_conversation(
@@ -75,6 +88,7 @@ async def create_conversation(
 
 # ============= MESSAGE ENDPOINTS =============
 
+
 @router.get("/conversations/{conversation_id}/messages", response_model=List[MessageWithSender])
 async def get_messages(
     conversation_id: int,
@@ -83,6 +97,7 @@ async def get_messages(
 ):
     """Get all messages in a conversation"""
     return await get_conversation_messages(conversation_id, current_user_id, db)
+
 
 @router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse)
 async def create_message(

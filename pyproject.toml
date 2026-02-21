@@ -1,0 +1,14 @@
+[project]
+name = "websocket-chat"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "bcrypt>=5.0.0",
+    "fastapi[standard]>=0.129.0",
+    "greenlet>=3.3.1",
+    "python-jose[cryptography]>=3.5.0",
+    "sqlalchemy>=2.0.46",
+]

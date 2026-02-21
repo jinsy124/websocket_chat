@@ -55,6 +55,17 @@ Response: 200 OK
 }
 ```
 
+### 4. Logout
+```http
+POST /auth/logout
+Authorization: Bearer <access_token>
+
+Response: 200 OK
+{
+  "message": "Successfully logged out"
+}
+```
+
 ---
 
 ## 👤 User Endpoints (Protected)
