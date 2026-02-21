@@ -26,7 +26,9 @@ async def websocket_endpoint(websocket: WebSocket):
         return
 
     await websocket.accept()
-    connections[user_id] = websocket
+    if user_id not in connections:
+        connections[user_id] = set()
+    connections[user_id].add(websocket)
     print(f"User {user_id} connected")
 
     try:
@@ -64,27 +66,40 @@ async def websocket_endpoint(websocket: WebSocket):
                 await session.refresh(msg)
 
                 # Payload to send
+                # Fetch sender user to get name for notification
+                from src.models import User
+                sender_result = await session.execute(select(User).where(User.id == user_id))
+                sender = sender_result.scalar_one_or_none()
+
                 message_payload = {
                     "id": msg.id,
                     "conversation_id": conversation_id,
                     "sender_id": user_id,
+                    "sender_name": sender.name if sender else "someone",
                     "text": text,
                     "created_at": msg.created_at.isoformat() if msg.created_at else None
                 }
 
-            # If receiver is online -> Send message instantly via WebSocket
+            # If receiver is online -> Send message instantly via WebSocket to all their open tabs
             if receiver_id in connections:
-                try:
-                    await connections[receiver_id].send_json(message_payload)
-                except Exception:
-                    pass
+                # Copy the set to gracefully handle disconnections mid-loop
+                for conn in list(connections[receiver_id]):
+                    try:
+                        await conn.send_json(message_payload)
+                    except Exception:
+                        pass
 
-            # Send message back to sender so they can render it locally
-            try:
-                await websocket.send_json(message_payload)
-            except Exception:
-                pass
+            # Send message back to sender so they can render it locally across all their tabs
+            if user_id in connections:
+                for conn in list(connections[user_id]):
+                    try:
+                        await conn.send_json(message_payload)
+                    except Exception:
+                        pass
     except WebSocketDisconnect:
         if user_id in connections:
-            del connections[user_id]
+            if websocket in connections[user_id]:
+                connections[user_id].remove(websocket)
+            if not connections[user_id]:
+                del connections[user_id]
         print(f"User {user_id} disconnected")
